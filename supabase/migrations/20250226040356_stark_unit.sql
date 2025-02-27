@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS notes (
   updated_at timestamptz DEFAULT now(),
   is_archived boolean DEFAULT false,
   is_pinned boolean DEFAULT false
+  is_deleted boolean DEFAULT false
 );
 
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;

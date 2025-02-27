@@ -7,4 +7,5 @@ export interface Note {
   updated_at: string;
   is_archived: boolean;
   is_pinned: boolean;
+  is_deleted: boolean;
 }

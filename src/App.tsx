@@ -55,11 +55,6 @@ function App() {
                 note.id === payload.new.id ? payload.new : note
               ); // Update the existing note
             }
-    
-            if (payload.eventType === "DELETE") {
-              return prevNotes.filter((note) => note.id !== payload.old.id); // Remove deleted note
-            }
-    
             return prevNotes;
           });
         }
@@ -156,7 +151,7 @@ function App() {
   async function handleDeleteNote(id: string) {
     setIsLoading(true)
 
-    const { error } = await supabase.from("notes").delete().eq("id", id);
+    const { error } = await supabase.from("notes").update({ is_deleted: true }).eq("id", id);
 
     if (!error) {
       fetchNotes();
@@ -212,7 +207,7 @@ function App() {
             </button>
           </div>
           <NoteList
-            notes={notes.filter((item:Note)=> item.is_archived === showArchived)}
+            notes={notes.filter((item:Note)=> item.is_archived === showArchived && item.is_deleted === false)}
             onPinNote={handlePinNote}
             onArchiveNote={handleArchiveNote}
             onDeleteNote={handleDeleteNote}
