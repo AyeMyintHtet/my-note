@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Plus, LogOut, Palette, Archive } from "lucide-react";
-import { HuePicker, AlphaPicker } from "react-color";
-import { useDebounce } from "react-haiku";
+import { Plus, LogOut,  Archive } from "lucide-react";
 
 import { supabase } from "./lib/supabase";
 import { Auth } from "./components/Auth";
 import { NoteList } from "./components/NoteList";
 import { NoteEditor } from "./components/NoteEditor";
 import { Note } from "./types";
-import { setCookiesData } from "./utils/setCookieData";
-import { getCookiesData } from "./utils/getCookiesData";
 import { LoadingComponent } from "./components/Loading";
 
 function App() {
