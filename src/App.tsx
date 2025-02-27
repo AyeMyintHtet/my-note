@@ -22,22 +22,14 @@ function App() {
   const [color, setColor] = useState({ r: 255, g: 255, b: 255, a: 1 });
   useEffect(() => {
     setIsLoading(true)
-    const setColorFromSessions = (access_token:string) =>{
-      const data = getCookiesData(`${access_token}noteColor`)
-      console.log(JSON.parse(data),'data')
-      setColor(data ? JSON.parse(data):{ r: 255, g: 255, b: 255, a: 1 } )
-    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setCookiesData('access_token', session.access_token);
-      setColorFromSessions(session.access_token);
     });
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setCookiesData('access_token', session.access_token);
-      setColorFromSessions(session.access_token);
 
       });
     setIsLoading(false)
@@ -51,27 +43,6 @@ function App() {
       fetchNotes();
     }
   }, [session, showArchived]);
-  const saveToCookies = ()=>{
-    session?.access_token && setCookiesData(`${session.access_token}noteColor`, JSON.stringify(color))
-  }
-
-  const handleColorChange = (newColor: any) => {
-    setColor((prev) => ({
-      ...prev,
-      r: newColor.rgb.r,
-      g: newColor.rgb.g,
-      b: newColor.rgb.b,
-    }));
-    saveToCookies()
-  };
-  const handleAlphaChange = (newAlpha) => {
-    setColor((prev) => ({
-      ...prev,
-      a: newAlpha.rgb.a,
-    }));
-    saveToCookies()
-  };
-
 
   async function fetchNotes() {
     setIsLoading(true)
@@ -177,24 +148,6 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">My Notes</h1>
           <div className="flex gap-4">
-            <div className="relative group">
-              <div className="inline-flex cursor-pointer items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <Palette className="h-4 w-4" />
-              </div>
-
-              <div className="!absolute z-10 rounded-md top-full left-1/2 transform -translate-x-1/2 shadow-md hover:shadow-lg  bg-gray-50 p-0  group-hover:p-5 h-0 group-hover:h-fit overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <h3 className="text-lg font-medium truncate text-gray-900 cursor-pointer">
-                  Card Color
-                </h3>
-                <HuePicker
-                  className=""
-                  color={color}
-                  onChange={handleColorChange}
-                />
-                <br />
-                <AlphaPicker color={color} onChange={handleAlphaChange} />
-              </div>
-            </div>
             <button
               onClick={() => {
                 setSelectedNote(null);
