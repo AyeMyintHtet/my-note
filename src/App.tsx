@@ -1,28 +1,31 @@
 import React, { useEffect, useState } from "react";
+import { Plus, LogOut, Palette, Archive } from "lucide-react";
+import { HuePicker, AlphaPicker } from "react-color";
+import { useDebounce } from "react-haiku";
+
 import { supabase } from "./lib/supabase";
 import { Auth } from "./components/Auth";
 import { NoteList } from "./components/NoteList";
 import { NoteEditor } from "./components/NoteEditor";
 import { Note } from "./types";
-import { Plus, LogOut, Palette, Archive } from "lucide-react";
-import { HuePicker, AlphaPicker } from "react-color";
 import { setCookiesData } from "./utils/setCookieData";
 import { getCookiesData } from "./utils/getCookiesData";
+import { LoadingComponent } from "./components/Loading";
 
 function App() {
+  const [isLoading,setIsLoading] = useState(true)
   const [session, setSession] = useState(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [archivedChanges, setArchivedChanges] = useState(0);
   const [color, setColor] = useState({ r: 255, g: 255, b: 255, a: 1 });
   useEffect(() => {
-
-
+    setIsLoading(true)
     const setColorFromSessions = (access_token:string) =>{
       const data = getCookiesData(`${access_token}noteColor`)
-      setColor(JSON.parse(data))
+      console.log(JSON.parse(data),'data')
+      setColor(data ? JSON.parse(data):{ r: 255, g: 255, b: 255, a: 1 } )
     }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -37,6 +40,7 @@ function App() {
       setColorFromSessions(session.access_token);
 
       });
+    setIsLoading(false)
       
 
     return () => subscription.unsubscribe();
@@ -47,6 +51,9 @@ function App() {
       fetchNotes();
     }
   }, [session, showArchived]);
+  const saveToCookies = ()=>{
+    session?.access_token && setCookiesData(`${session.access_token}noteColor`, JSON.stringify(color))
+  }
 
   const handleColorChange = (newColor: any) => {
     setColor((prev) => ({
@@ -64,10 +71,10 @@ function App() {
     }));
     saveToCookies()
   };
-  const saveToCookies = ()=>{
-    setCookiesData(`${session.access_token}noteColor`, JSON.stringify(color))
-  }
+
+
   async function fetchNotes() {
+    setIsLoading(true)
     const { data, error } = await supabase
       .from("notes")
       .select("*")
@@ -79,9 +86,12 @@ function App() {
     } else {
       setNotes(data || []);
     }
+    setIsLoading(false)
   }
 
   async function handleSaveNote(noteData: Partial<Note>) {
+    setIsLoading(true)
+
     if (selectedNote) {
       const { error } = await supabase
         .from("notes")
@@ -106,9 +116,12 @@ function App() {
         setShowEditor(false);
       }
     }
+    setIsLoading(false)
   }
 
   async function handlePinNote(id: string) {
+    setIsLoading(true)
+
     const note = notes.find((n) => n.id === id);
     if (note) {
       const { error } = await supabase
@@ -120,9 +133,12 @@ function App() {
         fetchNotes();
       }
     }
+    setIsLoading(false)
   }
 
   async function handleArchiveNote(id: string) {
+    setIsLoading(true)
+
     const note = notes.find((n) => n.id === id);
     if (note) {
       const status = !note.is_archived;
@@ -130,22 +146,28 @@ function App() {
         .from("notes")
         .update({ is_archived: status })
         .eq("id", id);
-      setArchivedChanges((prev) => (status ? prev + 1 : prev - 1));
       if (!error) {
         fetchNotes();
       }
     }
+    setIsLoading(false)
   }
 
   async function handleDeleteNote(id: string) {
+    setIsLoading(true)
+
     const { error } = await supabase.from("notes").delete().eq("id", id);
 
     if (!error) {
       fetchNotes();
     }
+    setIsLoading(false)
   }
 
-  if (!session) {
+  if(isLoading){
+    return <LoadingComponent />
+  }
+  if (!session && !isLoading) {
     return <Auth />;
   }
 
@@ -199,15 +221,11 @@ function App() {
             <button
               onClick={() => {
                 setShowArchived((prev) => !prev);
-                setArchivedChanges(0);
               }}
               className="relative inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <div className={`flex justify-center items-center text-sm absolute w-5 h-5 top-[-10px] left-[-10px] rounded-full bg-red-500 ${archivedChanges === 0 && "hidden"}`}>
-                {archivedChanges}
-              </div>
               <Archive className="h-4 w-4 mr-2" />
-              {!showArchived ? "Show" : "Hide"} Archived
+              Show {!showArchived ? "Archived" : "Notes"} 
 
             </button>
           </div>
@@ -216,7 +234,7 @@ function App() {
             onPinNote={handlePinNote}
             onArchiveNote={handleArchiveNote}
             onDeleteNote={handleDeleteNote}
-            color={ `${ color.r + ','  + color.g+ ','  + color.b+ ','  + color.a}`}
+            color={ `${ color?.r + ','  + color?.g+ ','  + color?.b+ ','  + color?.a}`}
             onSelectNote={(note) => {
               setSelectedNote(note);
               setShowEditor(true);
