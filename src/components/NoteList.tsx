@@ -9,7 +9,6 @@ interface NoteListProps {
   onArchiveNote: (id: string) => void;
   onDeleteNote: (id: string) => void;
   onSelectNote: (note: Note) => void;
-  color: string;
 }
 
 export function NoteList({
@@ -18,7 +17,6 @@ export function NoteList({
   onArchiveNote,
   onDeleteNote,
   onSelectNote,
-  color
 }: NoteListProps) {
   const sortedNotes = [...notes].sort((a, b) => {
     if (a.is_pinned && !b.is_pinned) return -1;
@@ -33,7 +31,7 @@ export function NoteList({
           className={`relative p-4 rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow ${
             note.is_pinned ? "bg-yellow-50" : note.is_archived ? "bg-blue-50": ``
           }`}
-          style={{ backgroundColor: (!note.is_pinned && !note.is_archived) ? `rgba(${color})` : '' }}
+          style={{ backgroundColor: (!note.is_pinned && !note.is_archived) ? `white` : '' }}
           onClick={() => onSelectNote(note)}
         >
           <div className="flex justify-between items-start mb-2">

@@ -15,7 +15,6 @@ function App() {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [color, setColor] = useState({ r: 255, g: 255, b: 255, a: 1 });
   useEffect(() => {
     setIsLoading(true)
 
@@ -29,23 +28,57 @@ function App() {
 
       });
     setIsLoading(false)
-      
 
-    return () => subscription.unsubscribe();
-  }, []);
+    
 
-  useEffect(() => {
-    if (session) {
-      fetchNotes();
+    return () => {
+      subscription.unsubscribe();
     }
-  }, [session, showArchived]);
+  }, []);
+  useEffect(()=>{
+    if (!session?.user?.id) return;
+    fetchNotes();
+
+    const channel = supabase.channel(`notes`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notes", filter: `user_id=eq.${session.user.id}` },
+        (payload:any) => {
+          console.log("Realtime update:", payload);
+          setNotes((prevNotes : Note[]) => {
+            if (payload.eventType === "INSERT") {
+              return [...prevNotes, payload.new]; 
+            }
+    
+            if (payload.eventType === "UPDATE") {
+              return prevNotes.map((note) =>
+                note.id === payload.new.id ? payload.new : note
+              ); // Update the existing note
+            }
+    
+            if (payload.eventType === "DELETE") {
+              return prevNotes.filter((note) => note.id !== payload.old.id); // Remove deleted note
+            }
+    
+            return prevNotes;
+          });
+        }
+      )
+      
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel); // Cleanup subscription on unmount
+    };
+
+  },[session])
 
   async function fetchNotes() {
     setIsLoading(true)
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("is_archived", showArchived)
+      // .eq("is_archived", showArchived)
       .order("is_pinned", { ascending: false })
       .order("updated_at", { ascending: false });
     if (error) {
@@ -179,11 +212,10 @@ function App() {
             </button>
           </div>
           <NoteList
-            notes={notes}
+            notes={notes.filter((item:Note)=> item.is_archived === showArchived)}
             onPinNote={handlePinNote}
             onArchiveNote={handleArchiveNote}
             onDeleteNote={handleDeleteNote}
-            color={ `${ color?.r + ','  + color?.g+ ','  + color?.b+ ','  + color?.a}`}
             onSelectNote={(note) => {
               setSelectedNote(note);
               setShowEditor(true);
